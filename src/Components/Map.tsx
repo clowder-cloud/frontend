@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import Cat from '../Interfaces/Cat';
 import Coordinates from '../Types/Coordinates';
 
-export default function Map({ cats }: { cats: Cat[] }) {
+export default function Map() {
 	const mapContainer = useRef<HTMLDivElement | null>(null); //  Lets you create a reference to a DOM element that stays between renders without triggering a re-render
 	const map = useRef<mapboxgl.Map | null>(null);
 
