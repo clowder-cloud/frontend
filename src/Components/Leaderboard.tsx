@@ -1,20 +1,21 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import CatLeaderboardCard from './CatLeaderboardCard';
+import calculateLineLength from '../Utils/calculateCatDistance';
+import Device from '../Interfaces/Device';
 
 export default function Leaderboard() {
-	const [cats, setCats] = useState<{}[]>([]);
+	const [devices, setDevices] = useState<Device[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState('');
 
 	useEffect(() => {
 		setIsLoading(true);
 		axios
-			.get('http://localhost:9090/api/cats') // Connect to table that has info
+			.get('http://localhost:9090/api/devices')
 			.then((response) => {
-				// Calculate score using info (location_history probably)
 				setIsLoading(false);
-				setCats(response.data.data); // Set cats info and score to then map through
+				setDevices(response.data.data);
 			})
 			.catch((err: Error) => {
 				setIsLoading(false);
@@ -22,14 +23,23 @@ export default function Leaderboard() {
 			});
 	}, []);
 
+	const top10DevicesByScore = devices
+		.map((device) => ({
+			device,
+			score: calculateLineLength(device.location_history),
+		}))
+		.sort((a, b) => b.score - a.score)
+		.slice(0, 10);
+
 	return (
 		<section>
 			{isLoading && <p>Loading...</p>}
 			{error && <p>{error}</p>}
-
 			<ul>
-				{cats.map((cat) => {
-					return <CatLeaderboardCard key={cat.device_id} cat={cat} />;
+				{top10DevicesByScore.map(({ device, score }) => {
+					return (
+						<CatLeaderboardCard key={device.id} device={device} score={score} />
+					);
 				})}
 			</ul>
 		</section>
