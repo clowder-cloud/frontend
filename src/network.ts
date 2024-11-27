@@ -3,6 +3,8 @@ import { User } from './Types/User';
 import Device from './Types/Device';
 import CatFromAxios from './Types/CatFromAxios';
 
+const NEARBY_DISTANCE = 5;
+
 const network = axios.create({
 	baseURL: process.env.REACT_APP_BACKEND_HOST,
 	headers: {
@@ -55,5 +57,13 @@ export function getCatsForUser(userId: string): Promise<CatFromAxios[]> {
 		.catch((err) => {
 			console.log(err);
 			return [];
+		});
+}
+
+export function getCatsNear(catId: string): Promise<CatFromAxios> {
+	return network
+		.get(`/nearby/${catId}/${NEARBY_DISTANCE}`)
+		.then(({ data: { data: cats } }) => {
+			return cats;
 		});
 }
