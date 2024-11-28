@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import Cat from '../Interfaces/Cat';
+import Cat from '../Types/Cat';
 import Coordinates from '../Types/Coordinates';
 import createMap from '../createMap';
-import axios from 'axios';
-import Device from '../Interfaces/Device';
-import CatFromAxios from '../Interfaces/CatFromAxios';
+import Device from '../Types/Device';
+import CatFromAxios from '../Types/CatFromAxios';
+import { getCatsForUser, getCatsNear, getDevicesForUser } from '../network';
 
 export default function MapContainer() {
 	const mapContainer = useRef<HTMLDivElement | null>(null);
@@ -15,47 +15,49 @@ export default function MapContainer() {
 	const [userId, setUserId] = useState<string>('cm3op7iwu0000jrcqa60tc9kv'); // Test user id for now as no global user variable
 
 	useEffect(() => {
-		Promise.all([
-			axios.get(`http://localhost:9090/api/users/${userId}/devices`),
-			axios.get(`http://localhost:9090/api/users/${userId}/cats`),
-		])
-			.then(
-				([
-					{
-						data: { data: deviceData },
-					},
-					{
-						data: { data: catData },
-					},
-				]) => {
-					const catsHistory: { lat: number; lon: number }[][] = deviceData.map(
-						(device: Device) => device.location_history.slice(-205) // If it updates every 7 mins this should be the last 24 hours
+		Promise.all([getDevicesForUser(userId), getCatsForUser(userId)])
+			.then(([devices, cats]: [Device[], CatFromAxios[]]) => {
+				const ownedCats: Cat[] = devices.map((device) => {
+					const catWearingDevice = cats.find(
+						(aCat) => (aCat.device_id = device.id)
 					);
-					const catsNameAndImage: { name: string; image: string }[] =
-						catData.map((cat: CatFromAxios) => ({
-							name: cat.name,
-							image: cat.picture_url,
-						}));
-
-					const fullCatsMapInfo: Cat[] = catsHistory.map(
-						(history, index: number) => ({
-							name: catsNameAndImage[index].name,
-							image: catsNameAndImage[index].image,
-							history,
-						})
-					);
-					setCatsMapInfo(fullCatsMapInfo);
-				}
-			)
+					if (!catWearingDevice)
+						throw new Error('No cat found for that device');
+					return {
+						id: catWearingDevice.id,
+						name: catWearingDevice.name,
+						image: catWearingDevice.picture_url,
+						history: device.location_history.slice(-205),
+						owned: true,
+					};
+				});
+				return Promise.all([
+					ownedCats,
+					...ownedCats.map(({ id }) => getCatsNear(id)),
+				]);
+			})
+			.then(([ownedCats, ...nearbyCats]) => {
+				const dedupedNearbyCats: Cat[] = Array.from(
+					new Set(nearbyCats.flat())
+				).map(({ id, name, picture_url }) => {
+					return {
+						id,
+						name,
+						image: picture_url,
+						history: [], // TBP - See CL-125
+						owned: false,
+					};
+				});
+				setCatsMapInfo([...ownedCats, ...dedupedNearbyCats]);
+			})
 			.catch((err) => {
 				console.log(err);
 			});
 	}, []);
 
-	useEffect(
-		() => createMap(mapContainer, home, catsMapInfo, map),
-		[catsMapInfo]
-	);
+	useEffect(() => {
+		createMap(mapContainer, home, catsMapInfo, map);
+	}, [catsMapInfo]);
 
 	return <div className="w-screen h-screen" ref={mapContainer} />;
 }
