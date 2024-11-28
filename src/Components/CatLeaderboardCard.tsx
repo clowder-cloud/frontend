@@ -1,3 +1,4 @@
+import React from 'react';
 import axios from 'axios';
 import CatFromAxios from '../Interfaces/CatFromAxios';
 import Device from '../Interfaces/Device';
