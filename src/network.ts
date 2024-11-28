@@ -60,10 +60,14 @@ export function getCatsForUser(userId: string): Promise<CatFromAxios[]> {
 		});
 }
 
-export function getCatsNear(catId: string): Promise<CatFromAxios[]> {
+export function getCatsNear(
+	catId: string
+): Promise<
+	{ cat: CatFromAxios; last_location: { lat: number; lon: number } }[]
+> {
 	return network
 		.get(`/api/cats/nearby/${catId}/${NEARBY_DISTANCE}`)
-		.then(({ data: { data: cats } }) => {
-			return cats;
+		.then(({ data }) => {
+			return data;
 		});
 }
