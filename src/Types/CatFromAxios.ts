@@ -7,4 +7,9 @@ export default interface CatFromAxios {
 	owner_id: string;
 	updated_at: string;
 	created_at: string;
+	deleted_at: string | null;
+	battle_profile: {
+		level: Number;
+		xp: number;
+	};
 }
